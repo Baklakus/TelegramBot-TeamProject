@@ -1,7 +1,14 @@
+import os
+import django
+
+# Указать путь к настройкам
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "appTelega.settings")
+django.setup()
+
 from django.contrib.auth.models import User
 from django.db import IntegrityError
 
-# Настройки
+# Админ-пользователь
 username = "admin"
 email = "admin@example.com"
 password = "admin123"
@@ -16,7 +23,6 @@ try:
             "is_active": True,
         }
     )
-
     user.set_password(password)
     user.save()
 
