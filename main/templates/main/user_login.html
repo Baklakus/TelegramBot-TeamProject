@@ -5,38 +5,58 @@
     <title>Вход в аккаунт</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'main/css/styles.css' %}">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        #auth-form-wrapper {
+            display: block;
+        }
+        .telegram-only-msg {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <header>
         <div>
-            <a href="index.html">Опросник</a>
-            <button onclick="location.href='index.html'">На главную</button>
+            <a href="/">Опросник</a>
+            <button onclick="location.href='/'">На главную</button>
         </div>
     </header>
 
     <main class="auth-container">
-        <form method="post">
-            {% csrf_token %}
-            <h1 class="auth-title">Вход</h1>
+        <div id="auth-form-wrapper">
+            <form method="post" class="auth-form">
+                {% csrf_token %}
+                <h1 class="auth-title">Вход</h1>
 
-            <div class="auth-field">
-                <label class="auth-label" for="username">Логин</label>
-                <input class="auth-input" type="text" name="username" required>
-            </div>
+                <div class="auth-field">
+                    <label class="auth-label" for="username">Логин</label>
+                    <input class="auth-input" type="text" name="username" required>
+                </div>
 
-            <div class="auth-field">
-                <label class="auth-label" for="password">Пароль</label>
-                <input class="auth-input" type="password" name="password" required>
-            </div>
+                <div class="auth-field">
+                    <label class="auth-label" for="password">Пароль</label>
+                    <input class="auth-input" type="password" name="password" required>
+                </div>
 
-            <button class="auth-button" type="submit">Войти</button>
-        </form>
+                <button class="auth-button" type="submit">Войти</button>
+            </form>
+        </div>
+
+        <div class="telegram-only-msg">
+            <h2 style="text-align:center;">Вы уже авторизованы через Telegram ✅</h2>
+        </div>
     </main>
 
     <footer>
         <p>LADA SPIRT</p>
     </footer>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="{% static 'main/js/telegram_init.js' %}"></script>
+
+    <script>
+        if (window.Telegram && Telegram.WebApp) {
+            document.getElementById("auth-form-wrapper").style.display = "none";
+            document.querySelector(".telegram-only-msg").style.display = "block";
+        }
+    </script>
 </body>
 </html>
