@@ -3,8 +3,8 @@ from django.contrib.auth.models import Group
 from .models import Survey, Question, AnswerOption, Respondent, ResponseSession, Response
 # Register your models here.
 
-Group.objects.get_or_create(name='Администратор')
-Group.objects.get_or_create(name='Ведущий')
+#Group.objects.get_or_create(name='Администратор')
+#Group.objects.get_or_create(name='Ведущий')
 
 class AnswerOptionInline(admin.TabularInline):
     model = AnswerOption
