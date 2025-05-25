@@ -19,6 +19,4 @@ def main():
 
 
 if __name__ == '__main__':
-    if os.environ.get("INIT_ADMIN"):
-        import init_admin
     main()
