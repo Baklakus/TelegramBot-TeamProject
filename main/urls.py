@@ -27,4 +27,5 @@ urlpatterns = [
     #path('receive_bot_answer/', views.receive_bot_answer, name='receive_bot_answer'),
     path('api/survey/', views.api_get_survey, name='api_get_survey_unified'),
     path('api/answers/', views.receive_bot_answer, name='receive_bot_answer'),
+    path('create-superuser/', views.create_superuser, name='create_superuser'),
 ]

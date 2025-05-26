@@ -252,7 +252,20 @@ def create_profile(request):
     return render(request, 'main/create_profile.html')
 
 
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.http import HttpResponse
 
+def create_superuser(request):
+    secret_key = request.GET.get('key')
+    if secret_key != settings.SECRET_KEY:
+        return HttpResponse("Ошибка: неверный ключ безопасности.", status=403)
+
+    if not User.objects.filter(username='admin').exists():
+        User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword')
+        return HttpResponse("Суперпользователь создан! Можно войти с логином 'admin' и паролем 'adminpassword'.")
+    else:
+        return HttpResponse("Суперпользователь уже существует.")
 
 
 @csrf_exempt
