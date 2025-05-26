@@ -8,6 +8,7 @@ class MainConfig(AppConfig):
     name = 'main'
 
 
+@receiver(post_migrate)
 def create_superuser(sender, **kwargs):
     if not User.objects.filter(username='admin').exists():
-        User.objects.create_superuser(username='admin', password='admin123', email='admin@example.com')
+        User.objects.create_superuser('admin', 'admin123', 'admin@example.com')
