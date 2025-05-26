@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const postUrl = form.dataset.url;
     const indexUrl = form.dataset.indexUrl;
 
+    // Функция для получения CSRF токена
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -21,6 +22,35 @@ document.addEventListener('DOMContentLoaded', function () {
         return cookieValue;
     }
 
+    // Удаление опроса через форму
+    const deleteSurveyBtn = document.getElementById('delete-survey-btn');
+    if (deleteSurveyBtn) {
+        deleteSurveyBtn.addEventListener('click', async function () {
+            const surveyId = form.dataset.surveyId; // получаем ID опроса из атрибута data-свойства формы
+
+            if (confirm('Вы уверены, что хотите удалить этот опрос?')) {
+                try {
+                    const response = await fetch(`/survey/${surveyId}/delete/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                        }
+                    });
+
+                    if (response.ok) {
+                        alert('Опрос успешно удален!');
+                        window.location.href = indexUrl;  // Перенаправляем на страницу с опросами
+                    } else {
+                        throw new Error('Ошибка при удалении опроса');
+                    }
+                } catch (error) {
+                    alert(error.message);
+                }
+            }
+        });
+    }
+
+    // Логика добавления нового вопроса и варианта
     function addNewQuestion() {
         const questionBlock = document.createElement('div');
         questionBlock.className = 'question-block';
@@ -65,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (optionsContainer.querySelectorAll('.option-block').length > 2) {
                 optionBlock.remove();
             } else {
-                alert('Минимум 2 варианта ответа!');
+                alert('Должно быть минимум 2 варианта ответа!');
             }
         }
 
@@ -94,11 +124,8 @@ document.addEventListener('DOMContentLoaded', function () {
         questionBlocks.forEach((block, index) => {
             const questionText = block.querySelector('.question-input').value.trim();
             const required = block.querySelector('.question-required')?.checked ?? false;
-            const questionId = block.dataset.questionId;
-
             const options = Array.from(block.querySelectorAll('.option-block')).map(optBlock => {
                 return {
-                    id: optBlock.dataset.optionId,
                     text: optBlock.querySelector('input').value.trim()
                 };
             });
@@ -110,7 +137,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             questions.push({
-                id: questionId,
                 text: questionText,
                 type: 'single_choice',
                 required: true,

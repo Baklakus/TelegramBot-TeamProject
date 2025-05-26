@@ -101,7 +101,7 @@ def edit_survey(request, survey_id):
 
             updated_question_ids.append(question.id)
 
-            # Обновляем варианты ответов
+
             existing_options = {opt.id: opt for opt in question.answeroption_set.all()}
             updated_option_ids = []
 
