@@ -24,6 +24,7 @@ urlpatterns = [
     path('create_profile/', views.create_profile, name='create_profile'),
 
     #API
-    path('receive_bot_answer/', views.receive_bot_answer, name='receive_bot_answer'),
-    path('api/survey/', views.api_get_survey_unified, name='api_get_survey_unified'),
+    #path('receive_bot_answer/', views.receive_bot_answer, name='receive_bot_answer'),
+    path('api/survey/', views.api_get_survey, name='api_get_survey_unified'),
+    path('api/answers/', views.receive_bot_answer, name='receive_bot_answer'),
 ]
