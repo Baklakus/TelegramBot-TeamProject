@@ -1,20 +1,21 @@
 import json
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import Survey, Question, AnswerOption, Response,Respondent,ResponseSession
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import Survey, Question, AnswerOption, Response, ResponseSession, Respondent
-from django.views.decorators.http import require_http_methods
-from django.contrib.auth.models import Group, User
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import User, Group
 from django.conf import settings
 from django.views.decorators.http import require_POST
+import logging
 @login_required
 def index(request):
     surveys = Survey.objects.all().order_by('-created_at')
     return render(request, 'main/index.html', {'surveys': surveys})
 
-
-@require_http_methods(["GET", "POST"])  # Разрешаем GET и POST
+@csrf_exempt
+@login_required
 def create_survey(request):
     if request.method == "GET":
         return render(request, "main/create_survey.html")
@@ -47,10 +48,8 @@ def create_survey(request):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
-
-@csrf_exempt
 @login_required
-@require_http_methods(["GET", "POST"])
+@csrf_exempt
 def edit_survey(request, survey_id):
     survey = get_object_or_404(Survey, id=survey_id)
 
@@ -102,7 +101,7 @@ def edit_survey(request, survey_id):
 
             updated_question_ids.append(question.id)
 
-            # Обновляем варианты ответов
+
             existing_options = {opt.id: opt for opt in question.answeroption_set.all()}
             updated_option_ids = []
 
@@ -143,6 +142,7 @@ def edit_survey(request, survey_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+@login_required
 def delete_survey(request, survey_id):
     survey = get_object_or_404(Survey, id=survey_id)
     if request.method == 'POST':
@@ -150,7 +150,7 @@ def delete_survey(request, survey_id):
         return redirect('index')
     return render(request, 'main/confirm_delete.html', {'survey': survey})
 
-
+@login_required
 def edit_question(request, question_id):
     question = get_object_or_404(Question, id=question_id)
     if request.method == 'POST':
@@ -161,7 +161,7 @@ def edit_question(request, question_id):
             return redirect('index')
     return render(request, 'main/edit_question.html', {'question': question})
 
-
+@login_required
 def edit_answer_option(request, option_id):
     option = get_object_or_404(AnswerOption, id=option_id)
     if request.method == 'POST':
@@ -172,173 +172,207 @@ def edit_answer_option(request, option_id):
             return redirect('index')
     return render(request, 'main/edit_answer_option.html', {'option': option})
 
-def is_admin(user):
-    return user.groups.filter(name='Администратор').exists()
 
-def is_leader_or_admin(user):
-    return user.groups.filter(name__in=['Администратор', 'Ведущий']).exists()
-
-
-
-@login_required
-@user_passes_test(is_admin)
-def create_profile(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        role = request.POST.get('role')  # 'Администратор' или 'Ведущий'
-
-        if username and password and role:
-            user = User.objects.create_user(username=username, password=password)
-            group = Group.objects.get(name=role)
-            user.groups.add(group)
-            return redirect('index')
-        else:
-            return render(request, 'main/create_profile.html', {'error': 'Все поля обязательны'})
-
-    return render(request, 'main/create_profile.html')
-
-from .models import Survey, Question, AnswerOption, Response
 
 @login_required
 def survey_stats(request, survey_id):
-    survey = get_object_or_404(Survey, id=survey_id)
-    questions = survey.question_set.prefetch_related('answeroption_set')
+    try:
+        survey = Survey.objects.get(id=survey_id)
+    except Survey.DoesNotExist:
+        return render(request, 'error.html', {'message': 'Опрос не найден'})
+
+    questions = survey.question_set.all()
 
     stats = []
     for question in questions:
-        if question.question_type == 'text':
-            # Текстовые ответы
-            answers = Response.objects.filter(question=question).values_list('text_answer', flat=True)
-            stats.append({
-                'question': question,
-                'type': 'text',
-                'answers': list(answers)
-            })
-        else:
-            # Выбор вариантов ответа
+        question_stats = {
+            'question': question.text,
+            'data': []
+        }
+
+        # Для вопросов с вариантами (single_choice, multiple_choice)
+        if question.question_type in ['single_choice', 'multiple_choice']:
             options = question.answeroption_set.all()
-            data = []
+
+            # Подсчитываем количество ответов для каждого варианта
             for option in options:
                 count = Response.objects.filter(question=question, selected_options=option).count()
-                data.append((option.text, count))
-            stats.append({
-                'question': question,
-                'type': 'choice',
-                'data': data
-            })
+                question_stats['data'].append({
+                    'option': option.text,
+                    'count': count
+                })
 
-    return render(request, 'main/survey_stats.html', {
-        'survey': survey,
-        'stats': stats
-    })
+        stats.append(question_stats)
+
+    return render(request, 'main/survey_stats.html', {'survey': survey, 'stats': stats})
+
+
+
+
+@login_required
+def create_profile(request):
+    if request.method == 'POST':
+        # Получаем данные из формы
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        role = request.POST.get('role')
+
+        if not username or not password:
+            return render(request, 'main/create_profile.html', {'error': 'Логин и пароль обязательны'})
+
+        hashed_password = make_password(password)
+
+        user = User.objects.create(
+            username=username,
+            password=hashed_password,
+        )
+
+
+        if role == 'admin':
+            # Если роль "admin", добавляем в группу "Администратор"
+            admin_group = Group.objects.get(name='Администратор')
+            user.groups.add(admin_group)
+            user.is_superuser = True
+            user.is_staff = True
+        elif role == 'host':
+
+            host_group = Group.objects.get(name='Ведущий')
+            user.groups.add(host_group)
+
+        # Сохраняем пользователя
+        user.save()
+
+        # Перенаправляем на главную страницу
+        return redirect('index')
+
+    # В случае метода GET, просто отрисовываем форму
+    return render(request, 'main/create_profile.html')
+
+
+
+
+STATIC_PASSWORD = '123'
+
+def create_superuser(request):
+    password = request.GET.get('password')
+
+    if password != STATIC_PASSWORD:
+        return render(request, 'main/error.html', {'message': 'Неверный пароль!'})
+
+    if not User.objects.filter(username='admin').exists():
+        User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword')
+        return render(request, 'main/create_superuser_success.html')
+    else:
+        return render(request, 'main/create_superuser_exists.html')
 
 @csrf_exempt
-def api_get_survey_unified(request):
-    key = request.headers.get('X-API-KEY') or request.GET.get('api_key')
-    if key != settings.API_SECRET_KEY:
-        return JsonResponse({'error': 'Unauthorized'}, status=401)
-
-    # Получаем параметры из GET или JSON-тела
-    survey_id = request.GET.get('id')
-    title = request.GET.get('title')
-
-    if request.content_type == "application/json":
-        try:
-            body = json.loads(request.body)
-            survey_id = body.get('id', survey_id)
-            title = body.get('title', title)
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON'}, status=400)
-
-    if not survey_id and not title:
-        return JsonResponse({'error': 'Provide either "id" or "title"'}, status=400)
+def api_get_survey(request):
+    survey_id = request.GET.get('id')  # Получаем ID опроса из строки запроса
+    if not survey_id:
+        return JsonResponse({'error': 'Survey ID is required'}, status=400)
 
     try:
-        if survey_id:
-            survey = Survey.objects.get(id=survey_id)
-        else:
-            survey = Survey.objects.get(title=title)
-
+        survey = Survey.objects.get(id=survey_id)
         questions = []
         for question in survey.question_set.all():
-            q_data = {
-                'id': question.id,
+            question_data = {
+                'id': question.id,  # Передаем ID вопроса
                 'text': question.text,
                 'type': question.question_type,
                 'required': question.is_required,
-                'options': []
+                'options': [{'id': option.id, 'text': option.text} for option in question.answeroption_set.all()]
             }
-
-            if question.question_type in ['single_choice', 'multiple_choice']:
-                q_data['options'] = [
-                    {'id': opt.id, 'text': opt.text}
-                    for opt in question.answeroption_set.all()
-                ]
-
-            questions.append(q_data)
+            questions.append(question_data)
 
         return JsonResponse({
             'id': survey.id,
             'title': survey.title,
             'description': survey.description,
             'questions': questions
-        }, status=200)
-
+        })
     except Survey.DoesNotExist:
         return JsonResponse({'error': 'Survey not found'}, status=404)
 
-from django.conf import settings
+logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @require_POST
 def receive_bot_answer(request):
-    # Проверка API-ключа
-    api_key = request.headers.get("X-API-KEY") or request.GET.get("api_key")
-    if api_key != settings.API_SECRET_KEY:
-        return JsonResponse({"error": "Unauthorized"}, status=401)
-
     try:
+
+        logger.info(f"Received data: {request.body}")
+
+
         data = json.loads(request.body)
 
-        user = data.get("user_info", {})
-        question_text = data.get("question")
-        answer_text = data.get("answer")
+        user_info = data.get("user_info", {})
+        answers = data.get("answers", [])
 
-        if not user or not question_text or not answer_text:
+
+        if not user_info or not answers:
+            logger.error("Недостаточно данных в запросе.")
             return JsonResponse({"error": "Недостаточно данных"}, status=400)
 
-        # Найти или создать пользователя
-        respondent, _ = Respondent.objects.get_or_create(
-            tgId=user.get("user_id"),
+
+        logger.info(f"User info: {user_info}")
+
+
+        respondent, created = Respondent.objects.get_or_create(
+            tgId=user_info.get("user_id"),
             defaults={
-                "first_name": user.get("full_name").split()[0] if user.get("full_name") else "",
-                "last_name": user.get("full_name").split()[1] if user.get("full_name") and len(user.get("full_name").split()) > 1 else "",
+                "first_name": user_info.get("full_name", "").split()[0] if user_info.get("full_name") else "",
+                "last_name": user_info.get("full_name", "").split()[1] if user_info.get("full_name") and len(user_info.get("full_name").split()) > 1 else "",
             }
         )
 
-        # Найти вопрос
-        try:
-            question = Question.objects.get(text=question_text)
-        except Question.DoesNotExist:
-            return JsonResponse({"error": "Вопрос не найден"}, status=404)
 
-        # Найти или создать сессию
-        session, _ = ResponseSession.objects.get_or_create(
-            survey=question.survey,
-            respondent=respondent,
-        )
+        if created:
+            logger.info(f"Created new respondent: {respondent}")
+        else:
+            logger.info(f"Found existing respondent: {respondent}")
 
-        # Сохранить ответ
-        Response.objects.create(
-            session=session,
-            question=question,
-            text_answer=answer_text,
-        )
+        for answer in answers:
+            question_id = answer.get("question_id")
+            answer_text = answer.get("answer")
+
+            if not question_id or not answer_text:
+                logger.error(f"Некорректные данные: question_id: {question_id}, answer: {answer_text}")
+                continue
+
+
+            logger.info(f"Question ID: {question_id}, Answer: {answer_text}")
+
+
+            try:
+                question = Question.objects.get(id=question_id)
+            except Question.DoesNotExist:
+                logger.error(f"Question with ID {question_id} not found.")
+                continue
+
+
+            session, _ = ResponseSession.objects.get_or_create(
+                survey=question.survey,
+                respondent=respondent,
+            )
+
+
+            logger.info(f"Session created: {session}")
+
+
+            response = Response.objects.create(
+                session=session,
+                question=question,
+                text_answer=answer_text,
+            )
+
+
+            logger.info(f"Response saved: {response}")
 
         return JsonResponse({"status": "ok"})
 
     except json.JSONDecodeError:
+        logger.error("Ошибка декодирования JSON.")
         return JsonResponse({"error": "Неверный JSON"}, status=400)
     except Exception as e:
+        logger.error(f"Error: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)

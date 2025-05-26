@@ -2,45 +2,53 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Статистика — {{ survey.title }}</title>
+    <title>Статистика опроса: {{ survey.title }}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'main/css/styles.css' %}">
 </head>
 <body>
-<header>
-    <div>
-        <a href="{% url 'index' %}">Назад к списку</a>
-    </div>
-</header>
+    <header>
+        <div>
+            <a href="{% url 'index' %}">Опросник</a>
+            <button onclick="location.href='{% url 'create_survey' %}'">Создать опрос</button>
 
-<main class="creator-page">
-    <h1>Статистика опроса: "{{ survey.title }}"</h1>
-
-    {% for stat in stats %}
-        <section style="margin-bottom: 2rem;">
-            <h3>{{ forloop.counter }}. {{ stat.question.text }}</h3>
-
-            {% if stat.type == 'text' %}
-                <ul>
-                    {% for answer in stat.answers %}
-                        <li>{{ answer }}</li>
-                    {% empty %}
-                        <li><i>Нет ответов</i></li>
-                    {% endfor %}
-                </ul>
-            {% elif stat.type == 'choice' %}
-                <ul>
-                    {% for option, count in stat.data %}
-                        <li>{{ option }} — {{ count }} ответ(ов)</li>
-                    {% endfor %}
-                </ul>
+            {% if request.user.groups.first.name == 'Администратор' %}
+                <button onclick="location.href='{% url 'create_profile' %}'">Создать профиль</button>
             {% endif %}
-        </section>
-    {% endfor %}
-</main>
 
-<footer>
-    <p>LADA SPIRT</p>
-</footer>
+            <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit">Выйти из аккаунта</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="survey-stats">
+        <h1>Статистика опроса: "{{ survey.title }}"</h1>
+
+        <h2>Детальная статистика по вопросам</h2>
+
+        {% for stat in stats %}
+            <section class="question-section">
+                <h3>{{ stat.question }}</h3>
+                <ul>
+                    {% for option in stat.data %}
+                        <li>{{ option.option }} — {{ option.count|default:0 }} ответ(ов)</li>
+                    {% empty %}
+                        <li><i>Нет вариантов ответа</i></li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endfor %}
+
+        <!-- Кнопка возврата на главную страницу -->
+        <div class="back-to-home">
+            <a href="{% url 'index' %}" class="back-button">Вернуться на главную</a>
+        </div>
+    </main>
+
+    <footer>
+        <p>LADA SPIRT</p>
+    </footer>
 </body>
 </html>

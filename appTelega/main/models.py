@@ -7,6 +7,7 @@ class Respondent(models.Model):
     last_name = models.CharField(max_length=100, blank=True)
     age = models.IntegerField(blank=True, null=True)
     registration_date = models.DateTimeField(auto_now_add=True)
+    is_allowed = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Респондент"
