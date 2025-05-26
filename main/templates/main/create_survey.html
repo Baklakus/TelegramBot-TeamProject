@@ -16,31 +16,29 @@
 
     <main class="creator-page">
         <form id="surveyForm" method="POST" action="#" onsubmit="return false" data-url="{% url 'create_survey' %}">
-    {% csrf_token %}
-    <section class="survey-creator">
-        <div>
-            <label>Название опроса:</label>
-            <input type="text" id="survey-title" name="title" required>
-            <label>Описание опроса:</label>
-            <textarea id="survey-description" name="description" rows="3"></textarea>
-        </div>
-        <div id="questions-container"></div>
-        <div>
-            <button type="button" id="add-question">+ Добавить вопрос</button>
-            <button type="submit" id="create-survey">Создать опрос</button>
-        </div>
-    </section>
-</form>
+            {% csrf_token %}
+            <section class="survey-creator">
+                <div>
+                    <label>Название опроса:</label>
+                    <input type="text" id="survey-title" name="title" required>
+                    <label>Описание опроса:</label>
+                    <textarea id="survey-description" name="description" rows="3"></textarea>
+                </div>
+                <div id="questions-container"></div>
+                <div>
+                    <button type="button" id="add-question">+ Добавить вопрос</button>
+                    <button type="submit" id="create-survey">Создать опрос</button>
+                </div>
+            </section>
+        </form>
     </main>
 
     <footer>...</footer>
     <script>
-    window.surveyUrls = {
-        index: "{% url 'index' %}"
-    };
+        window.surveyUrls = {
+            index: "{% url 'index' %}"
+        };
     </script>
     <script src="{% static 'main/js/create_survey.js' %}"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="{% static 'main/js/telegram_init.js' %}"></script>
 </body>
 </html>

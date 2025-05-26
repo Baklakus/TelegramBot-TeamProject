@@ -152,6 +152,7 @@ footer p {
     color: #ffc107;
 }
 
+/* Форма */
 .auth-page {
     display: flex;
     justify-content: center;
@@ -159,14 +160,12 @@ footer p {
     min-height: 100vh;
 }
 
-/* Основной контейнер формы */
 .auth-container {
     width: 100%;
     max-width: 400px;
     padding: 20px;
 }
 
-/* Форма */
 .auth-form {
     background: white;
     padding: 2rem;
@@ -178,7 +177,6 @@ footer p {
     transform: translateY(-2px);
 }
 
-/* Заголовок */
 .auth-title {
     margin: 0 0 1.5rem 0;
     color: #333;
@@ -186,7 +184,6 @@ footer p {
     font-size: 1.5rem;
 }
 
-/* Поле формы */
 .auth-field {
     margin-bottom: 1.2rem;
 }
@@ -202,16 +199,17 @@ footer p {
     padding: 0.8rem;
     border: 1px solid #ddd;
     border-radius: 4px;
-    box-sizing: border-box;
     font-size: 1rem;
+    box-sizing: border-box;
 }
 
+/* Убираем эффекты на фокусе и наведении */
 .auth-input:focus {
     border-color: #999;
     outline: none;
+    box-shadow: none;
 }
 
-/* Кнопка */
 .auth-button {
     width: 100%;
     padding: 0.8rem;
@@ -222,18 +220,15 @@ footer p {
     font-size: 1rem;
     cursor: pointer;
     margin-top: 0.5rem;
+    transition: none; /* Отключаем анимации */
 }
 
 .auth-button:hover {
-    opacity: 0.8;
-    transform: translateY(-2px);
+    background-color: #45a049; /* Цвет кнопки при наведении */
+    opacity: 0.9; /* Легкое затемнение при наведении */
 }
 
-
-
-
-
-
+/* Создание опросника */
 .creator-page {
     max-width: 800px;
     margin: 0 auto;

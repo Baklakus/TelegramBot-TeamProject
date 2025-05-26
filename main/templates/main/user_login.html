@@ -5,15 +5,6 @@
     <title>Вход в аккаунт</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'main/css/styles.css' %}">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        #auth-form-wrapper {
-            display: block;
-        }
-        .telegram-only-msg {
-            display: none;
-        }
-    </style>
 </head>
 <body>
     <header>
@@ -42,21 +33,67 @@
                 <button class="auth-button" type="submit">Войти</button>
             </form>
         </div>
-
-        <div class="telegram-only-msg">
-            <h2 style="text-align:center;">Вы уже авторизованы через Telegram ✅</h2>
-        </div>
     </main>
 
     <footer>
         <p>LADA SPIRT</p>
     </footer>
 
-    <script>
-        if (window.Telegram && Telegram.WebApp) {
-            document.getElementById("auth-form-wrapper").style.display = "none";
-            document.querySelector(".telegram-only-msg").style.display = "block";
+    <style>
+        /* Фиксированные стили для входной формы */
+        .auth-input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            box-sizing: border-box;
         }
-    </script>
+
+        .auth-button {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: none; /* Убираем анимации */
+        }
+
+        .auth-button:hover {
+            background-color: #45a049; /* Цвет кнопки при наведении */
+            opacity: 0.9; /* Легкое затемнение при наведении */
+        }
+
+        .auth-field {
+            margin-bottom: 1.2rem;
+        }
+
+        .auth-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+
+        .auth-title {
+            margin: 0 0 1.5rem 0;
+            color: #333;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+
+        /* Стиль для футера */
+        footer {
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            margin-top: auto;
+        }
+    </style>
 </body>
 </html>
+
