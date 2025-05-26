@@ -27,12 +27,10 @@ class SurveyAdmin(admin.ModelAdmin):
     inlines = [QuestionInline]
 
     def get_question_count(self, obj):
-        # Подсчитываем количество вопросов для данного опроса
         return obj.question_set.count()
     get_question_count.short_description = 'Количество вопросов'
 
     def get_answer_count(self, obj):
-        # Подсчитываем общее количество ответов для этого опроса
         return Response.objects.filter(question__survey=obj).count()
     get_answer_count.short_description = 'Количество ответов'
 

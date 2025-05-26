@@ -172,13 +172,6 @@ def edit_answer_option(request, option_id):
             return redirect('index')
     return render(request, 'main/edit_answer_option.html', {'option': option})
 
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from .models import Survey, Question, Response, AnswerOption
-
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from .models import Survey, Response, AnswerOption
 
 
 @login_required
