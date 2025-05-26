@@ -252,21 +252,23 @@ def create_profile(request):
     return render(request, 'main/create_profile.html')
 
 
-from django.conf import settings
-from django.contrib.auth.models import User
-from django.http import HttpResponse
+
+
+STATIC_PASSWORD = '123'
 
 def create_superuser(request):
-    secret_key = request.GET.get('key')
-    if secret_key != settings.SECRET_KEY:
-        return HttpResponse("Ошибка: неверный ключ безопасности.", status=403)
+    # Проверка, если в GET-запросе передан пароль
+    password = request.GET.get('password')
+
+    if password != STATIC_PASSWORD:
+        return render(request, 'main/error.html', {'message': 'Неверный пароль!'})
 
     if not User.objects.filter(username='admin').exists():
+        # Создаем суперпользователя
         User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword')
-        return HttpResponse("Суперпользователь создан! Можно войти с логином 'admin' и паролем 'adminpassword'.")
+        return render(request, 'main/create_superuser_success.html')
     else:
-        return HttpResponse("Суперпользователь уже существует.")
-
+        return render(request, 'main/create_superuser_exists.html')
 
 @csrf_exempt
 def api_get_survey(request):
@@ -302,24 +304,24 @@ logger = logging.getLogger(__name__)
 @require_POST
 def receive_bot_answer(request):
     try:
-        # Логируем полученные данные
+
         logger.info(f"Received data: {request.body}")
 
-        # Получаем данные из запроса
+
         data = json.loads(request.body)
 
         user_info = data.get("user_info", {})
-        answers = data.get("answers", [])  # Список всех ответов
+        answers = data.get("answers", [])
 
-        # Проверка, что все обязательные данные переданы
+
         if not user_info or not answers:
             logger.error("Недостаточно данных в запросе.")
             return JsonResponse({"error": "Недостаточно данных"}, status=400)
 
-        # Логируем информацию о пользователе
+
         logger.info(f"User info: {user_info}")
 
-        # Найти или создать респондента
+
         respondent, created = Respondent.objects.get_or_create(
             tgId=user_info.get("user_id"),
             defaults={
@@ -328,13 +330,12 @@ def receive_bot_answer(request):
             }
         )
 
-        # Логируем информацию о респонденте
+
         if created:
             logger.info(f"Created new respondent: {respondent}")
         else:
             logger.info(f"Found existing respondent: {respondent}")
 
-        # Обрабатываем каждый ответ
         for answer in answers:
             question_id = answer.get("question_id")
             answer_text = answer.get("answer")
@@ -343,33 +344,33 @@ def receive_bot_answer(request):
                 logger.error(f"Некорректные данные: question_id: {question_id}, answer: {answer_text}")
                 continue
 
-            # Логируем информацию о вопросе и ответе
+
             logger.info(f"Question ID: {question_id}, Answer: {answer_text}")
 
-            # Найти вопрос по ID
+
             try:
                 question = Question.objects.get(id=question_id)
             except Question.DoesNotExist:
                 logger.error(f"Question with ID {question_id} not found.")
                 continue  # Пропускаем этот ответ, если вопрос не найден
 
-            # Найти или создать сессию
+
             session, _ = ResponseSession.objects.get_or_create(
                 survey=question.survey,
                 respondent=respondent,
             )
 
-            # Логируем создание/нахождение сессии
+
             logger.info(f"Session created: {session}")
 
-            # Сохраняем ответ
+
             response = Response.objects.create(
                 session=session,
                 question=question,
                 text_answer=answer_text,
             )
 
-            # Логируем успешное сохранение ответа
+
             logger.info(f"Response saved: {response}")
 
         return JsonResponse({"status": "ok"})

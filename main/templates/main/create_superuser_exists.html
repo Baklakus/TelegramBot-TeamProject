@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Суперпользователь уже существует</title>
+    <link rel="stylesheet" href="{% static 'main/css/styles.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Ошибка!</h1>
+    </header>
+
+    <main>
+        <p>Суперпользователь с логином <strong>admin</strong> уже существует.</p>
+        <p>Пожалуйста, войдите в систему с этим логином.</p>
+        <a href="{% url 'login' %}">Перейти на страницу входа</a>
+    </main>
+
+    <footer>
+        <p>LADA SPIRT</p>
+    </footer>
+</body>
+</html>
