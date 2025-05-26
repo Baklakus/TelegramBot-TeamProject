@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Ведущий - Опросник</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'main/css/styles.css' %}">
+</head>
+<body>
+    <header>
+        <div>
+            <a href="{% url 'index' %}">Опросник</a>
+            <button onclick="location.href='{% url 'create_survey' %}'">Создать опрос</button>
+
+            {% if request.user.groups.first.name == 'Администратор' %}
+                <button onclick="location.href='{% url 'create_profile' %}'">Создать профиль</button>
+            {% endif %}
+
+            <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit">Выйти из аккаунта</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <section class="surveys-list">
+            <h2>Мои опросы</h2>
+            <div id="surveys-container">
+                {% for survey in surveys %}
+                <div class="survey-card">
+                    <h3 class="survey-title">ID {{ survey.id }} — {{ survey.title }}</h3>
+
+                    {% if survey.description %}
+                    <p>{{ survey.description|truncatechars:150 }}</p>
+                    {% endif %}
+
+                    <div class="survey-info">
+                        <p>Дата создания: <span class="creation-date">{{ survey.created_at|date:"d.m.Y" }}</span></p>
+                    </div>
+
+                    <div class="survey-actions">
+                        <button onclick="location.href='{% url 'edit_survey' survey.id %}'">Редактировать</button>
+                        <form method="post" action="{% url 'delete_survey' survey.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit">Удалить</button>
+                        </form>
+                        <button onclick="location.href='{% url 'survey_stats' survey.id %}'">Статистика</button>
+                    </div>
+                </div>
+                {% empty %}
+                <p>Нет доступных опросов</p>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>LADA SPIRT</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактирование опроса - Опросник</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'main/css/styles.css' %}">
+</head>
+<body>
+<header>
+    <div>
+        <a href="{% url 'index' %}">Опросник</a>
+        <button onclick="location.href='{% url 'index' %}'">На главную</button>
+    </div>
+</header>
+
+<main class="creator-page">
+    <h1>Редактировать опрос</h1>
+    <form id="surveyForm" method="POST" onsubmit="return false"
+          data-url="{% url 'edit_survey' survey.id %}"
+          data-index-url="{% url 'index' %}">
+        {% csrf_token %}
+        <section class="survey-creator">
+            <!-- Название опроса -->
+            <div>
+                <label>Название опроса:</label>
+                <input type="text" id="survey-title" name="title" value="{{ survey.title }}" required>
+            </div>
+
+            <!-- Описание опроса -->
+            <div>
+                <label>Описание опроса:</label>
+                <textarea id="survey-description" name="description" rows="3" required>{{ survey.description|default_if_none:"" }}</textarea>
+            </div>
+
+            <!-- Вопросы -->
+            <div id="questions-container">
+                {% for question in survey.question_set.all %}
+                <div class="question-block" data-question-id="{{ question.id }}">
+                    <div>
+                        <label>Вопрос:</label>
+                        <input type="text" class="question-input" value="{{ question.text }}" required>
+                    </div>
+                    <div>
+                            <label>Обязательный?</label>
+                            <input type="checkbox" class="question-required" {% if question.is_required %}checked{% endif %}>
+                    </div>
+                    <div class="options-container">
+                        {% for option in question.answeroption_set.all %}
+                        <div class="option-block" data-option-id="{{ option.id }}">
+                            <input type="text" value="{{ option.text }}" required>
+                            <button type="button" class="delete-option">Удалить</button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="add-option">+ Добавить вариант</button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div>
+                <button type="button" id="add-question">+ Добавить вопрос</button>
+                <button type="submit" id="update-survey">Сохранить изменения</button>
+            </div>
+        </section>
+    </form>
+</main>
+
+<footer>
+    <p>LADA SPIRT</p>
+</footer>
+
+<script src="{% static 'main/js/edit_survey.js' %}"></script>
+</body>
+</html>
+

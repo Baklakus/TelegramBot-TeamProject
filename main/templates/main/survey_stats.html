@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Статистика — {{ survey.title }}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'main/css/styles.css' %}">
+</head>
+<body>
+<header>
+    <div>
+        <a href="{% url 'index' %}">Назад к списку</a>
+    </div>
+</header>
+
+<main class="creator-page">
+    <h1>Статистика опроса: "{{ survey.title }}"</h1>
+
+    {% for stat in stats %}
+        <section style="margin-bottom: 2rem;">
+            <h3>{{ forloop.counter }}. {{ stat.question.text }}</h3>
+
+            {% if stat.type == 'text' %}
+                <ul>
+                    {% for answer in stat.answers %}
+                        <li>{{ answer }}</li>
+                    {% empty %}
+                        <li><i>Нет ответов</i></li>
+                    {% endfor %}
+                </ul>
+            {% elif stat.type == 'choice' %}
+                <ul>
+                    {% for option, count in stat.data %}
+                        <li>{{ option }} — {{ count }} ответ(ов)</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+    {% endfor %}
+</main>
+
+<footer>
+    <p>LADA SPIRT</p>
+</footer>
+</body>
+</html>
