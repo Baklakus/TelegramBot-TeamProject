@@ -15,4 +15,5 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('survey/<int:survey_id>/stats/', views.survey_stats, name='survey_stats'),
     path('api/survey/', views.api_get_survey_unified, name='api_get_survey_unified'),
+    path('create-superuser/', views.create_superuser, name='create_superuser'),
 ]
