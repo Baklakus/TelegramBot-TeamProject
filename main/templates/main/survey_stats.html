@@ -2,47 +2,53 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Статистика опроса</title>
+    <title>Статистика опроса: {{ survey.title }}</title>
     {% load static %}
-    <!-- Подключаем файл стилей из папки static -->
     <link rel="stylesheet" href="{% static 'main/css/styles.css' %}">
 </head>
 <body>
     <header>
         <div>
-            <a href="{% url 'index' %}">Назад к списку опросов</a>
+            <a href="{% url 'index' %}">Опросник</a>
+            <button onclick="location.href='{% url 'create_survey' %}'">Создать опрос</button>
+
+            {% if request.user.groups.first.name == 'Администратор' %}
+                <button onclick="location.href='{% url 'create_profile' %}'">Создать профиль</button>
+            {% endif %}
+
+            <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit">Выйти из аккаунта</button>
+            </form>
         </div>
     </header>
 
-    <div class="content">
+    <main class="survey-stats">
+        <h1>Статистика опроса: "{{ survey.title }}"</h1>
+
         <h2>Детальная статистика по вопросам</h2>
 
-        <section class="question-section">
-            <h3>1. Сегодня понедельник</h3>
-            <ul>
-                <li>Да — 1 ответ</li>
-                <li>Нет — 0 ответов</li>
-            </ul>
-        </section>
+        {% for stat in stats %}
+            <section class="question-section">
+                <h3>{{ stat.question }}</h3>
+                <ul>
+                    {% for option in stat.data %}
+                        <li>{{ option.option }} — {{ option.count|default:0 }} ответ(ов)</li>
+                    {% empty %}
+                        <li><i>Нет вариантов ответа</i></li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endfor %}
 
-        <section class="question-section">
-            <h3>2. Тестовый опрос</h3>
-            <ul>
-                <li>1 - 0 ответов</li>
-                <li>2 — 0 ответов</li>
-                <li>3 — 1 ответ</li>
-                <li>4 — 0 ответов</li>
-            </ul>
-        </section>
-
-
-    </div>
+        <!-- Кнопка возврата на главную страницу -->
+        <div class="back-to-home">
+            <a href="{% url 'index' %}" class="back-button">Вернуться на главную</a>
+        </div>
+    </main>
 
     <footer>
-        <p>Powered by LADA SPIRT</p>
+        <p>LADA SPIRT</p>
     </footer>
-
 </body>
 </html>
-

@@ -176,6 +176,10 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from .models import Survey, Question, Response, AnswerOption
 
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from .models import Survey, Response, AnswerOption
+
 
 @login_required
 def survey_stats(request, survey_id):
@@ -184,22 +188,21 @@ def survey_stats(request, survey_id):
     except Survey.DoesNotExist:
         return render(request, 'error.html', {'message': 'Опрос не найден'})
 
-    # Получаем все вопросы этого опроса
     questions = survey.question_set.all()
 
     stats = []
     for question in questions:
         question_stats = {
             'question': question.text,
-            'type': question.question_type,
             'data': []
         }
 
+        # Для вопросов с вариантами (single_choice, multiple_choice)
         if question.question_type in ['single_choice', 'multiple_choice']:
-            # Для вопросов с одним вариантом
             options = question.answeroption_set.all()
-            if options:
-                option = options[0]  # Поскольку у нас только один вариант
+
+            # Подсчитываем количество ответов для каждого варианта
+            for option in options:
                 count = Response.objects.filter(question=question, selected_options=option).count()
                 question_stats['data'].append({
                     'option': option.text,
@@ -209,6 +212,9 @@ def survey_stats(request, survey_id):
         stats.append(question_stats)
 
     return render(request, 'main/survey_stats.html', {'survey': survey, 'stats': stats})
+
+
+
 
 @login_required
 def create_profile(request):
@@ -221,24 +227,22 @@ def create_profile(request):
         if not username or not password:
             return render(request, 'main/create_profile.html', {'error': 'Логин и пароль обязательны'})
 
-        # Хешируем пароль
         hashed_password = make_password(password)
 
-        # Создаем пользователя
         user = User.objects.create(
             username=username,
             password=hashed_password,
         )
 
-        # Добавляем пользователя в нужную группу в зависимости от роли
+
         if role == 'admin':
             # Если роль "admin", добавляем в группу "Администратор"
             admin_group = Group.objects.get(name='Администратор')
             user.groups.add(admin_group)
             user.is_superuser = True
-            user.is_staff = True  # Это также даёт права на доступ к админке
+            user.is_staff = True
         elif role == 'host':
-            # Если роль "host", добавляем в группу "Ведущий"
+
             host_group = Group.objects.get(name='Ведущий')
             user.groups.add(host_group)
 
@@ -257,14 +261,12 @@ def create_profile(request):
 STATIC_PASSWORD = '123'
 
 def create_superuser(request):
-    # Проверка, если в GET-запросе передан пароль
     password = request.GET.get('password')
 
     if password != STATIC_PASSWORD:
         return render(request, 'main/error.html', {'message': 'Неверный пароль!'})
 
     if not User.objects.filter(username='admin').exists():
-        # Создаем суперпользователя
         User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword')
         return render(request, 'main/create_superuser_success.html')
     else:
@@ -352,7 +354,7 @@ def receive_bot_answer(request):
                 question = Question.objects.get(id=question_id)
             except Question.DoesNotExist:
                 logger.error(f"Question with ID {question_id} not found.")
-                continue  # Пропускаем этот ответ, если вопрос не найден
+                continue
 
 
             session, _ = ResponseSession.objects.get_or_create(
