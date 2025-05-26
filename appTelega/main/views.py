@@ -8,6 +8,8 @@ from django.contrib.auth.models import Group, User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.conf import settings
 from django.views.decorators.http import require_POST
+from django.http import HttpResponse
+
 @login_required
 def index(request):
     surveys = Survey.objects.all().order_by('-created_at')
@@ -46,6 +48,19 @@ def create_survey(request):
             return JsonResponse({"error": "Неверный формат данных"}, status=400)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+
+
+def create_superuser(request):
+    username = 'admin'  
+    password = 'admin123'  
+    email = 'admin@example.com' 
+
+    if not User.objects.filter(username=username).exists():
+        User.objects.create_superuser(username=username, password=password, email=email)
+        return HttpResponse("Суперпользователь успешно создан.")
+    else:
+        return HttpResponse("Суперпользователь уже существует.")
+
 
 
 @csrf_exempt
