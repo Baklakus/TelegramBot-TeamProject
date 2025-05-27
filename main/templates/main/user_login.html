@@ -32,6 +32,10 @@
 
                 <button class="auth-button" type="submit">Войти</button>
             </form>
+
+            <div class="create-superuser-btn-container">
+                <a class="auth-button" href="{% url 'create_superuser' %}">Создать суперпользователя</a>
+            </div>
         </div>
     </main>
 
@@ -39,61 +43,5 @@
         <p>LADA SPIRT</p>
     </footer>
 
-    <style>
-        /* Фиксированные стили для входной формы */
-        .auth-input {
-            width: 100%;
-            padding: 0.8rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
-            box-sizing: border-box;
-        }
-
-        .auth-button {
-            width: 100%;
-            padding: 0.8rem;
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
-            margin-top: 0.5rem;
-            transition: none; /* Убираем анимации */
-        }
-
-        .auth-button:hover {
-            background-color: #45a049; /* Цвет кнопки при наведении */
-            opacity: 0.9; /* Легкое затемнение при наведении */
-        }
-
-        .auth-field {
-            margin-bottom: 1.2rem;
-        }
-
-        .auth-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #555;
-        }
-
-        .auth-title {
-            margin: 0 0 1.5rem 0;
-            color: #333;
-            text-align: center;
-            font-size: 1.5rem;
-        }
-
-        /* Стиль для футера */
-        footer {
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            text-align: center;
-            padding: 1rem;
-            margin-top: auto;
-        }
-    </style>
 </body>
 </html>
-

@@ -253,14 +253,18 @@ def create_profile(request):
 
 STATIC_PASSWORD = '123'
 
+
 def create_superuser(request):
-    password = request.GET.get('password')
-
-    if password != STATIC_PASSWORD:
-        return render(request, 'main/error.html', {'message': 'Неверный пароль!'})
-
     if not User.objects.filter(username='admin').exists():
-        User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword')
+        user = User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword')
+
+        admin_group, created = Group.objects.get_or_create(name='Администратор')
+
+        user.groups.add(admin_group)
+
+
+        user.save()
+
         return render(request, 'main/create_superuser_success.html')
     else:
         return render(request, 'main/create_superuser_exists.html')
