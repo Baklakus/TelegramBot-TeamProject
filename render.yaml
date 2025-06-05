@@ -3,9 +3,9 @@ services:
     name: django-app
     env: python
     buildCommand: ./build.sh
-    startCommand: gunicorn mysite.wsgi:application
+    startCommand: gunicorn appTelega.wsgi:application
     envVars:
       - key: DJANGO_SECRET_KEY
-        value: 825c224c2f59a4d44721f7f88a0f0a3c
+        value: django-insecure-q^yw$#&yxmty2d^i@&^2hon=8u$nzgqq-g695a4xj4j9)64rw6
       - key: DJANGO_ALLOWED_HOSTS
         value: your-app.onrender.com

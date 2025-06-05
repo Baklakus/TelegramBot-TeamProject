@@ -9,6 +9,3 @@ python manage.py migrate --noinput
 
 # Сбор статических файлов
 python manage.py collectstatic --noinput
-
-# Создание суперпользователя (если необходимо)
-python manage.py createsuperuser --noinput || true
