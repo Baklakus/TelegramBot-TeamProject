@@ -420,88 +420,69 @@ def api_get_survey(request):
 
 logger = logging.getLogger(__name__)
 
+
 @csrf_exempt
 @require_POST
 def receive_bot_answer(request):
     try:
-
-        logger.info(f"Received data: {request.body}")
-
-
+        # Парсим входящий JSON
         data = json.loads(request.body)
-
         user_info = data.get("user_info", {})
         answers = data.get("answers", [])
 
-
+        # Проверка обязательных полей
         if not user_info or not answers:
-            logger.error("Недостаточно данных в запросе.")
-            return JsonResponse({"error": "Недостаточно данных"}, status=400)
+            return JsonResponse({"error": "Missing required data"}, status=400)
 
-
-        logger.info(f"User info: {user_info}")
-
-
+        # Получаем или создаем респондента
         respondent, created = Respondent.objects.get_or_create(
-            tgId=user_info.get("user_id"),
+            tgId=user_info["user_id"],
             defaults={
-                "first_name": user_info.get("full_name", "").split()[0] if user_info.get("full_name") else "",
-                "last_name": user_info.get("full_name", "").split()[1] if user_info.get("full_name") and len(user_info.get("full_name").split()) > 1 else "",
+                "first_name": user_info.get("full_name", "").split()[0],
+                "last_name": " ".join(user_info.get("full_name", "").split()[1:])[:100],
             }
         )
 
-
-        if created:
-            logger.info(f"Created new respondent: {respondent}")
-        else:
-            logger.info(f"Found existing respondent: {respondent}")
-
+        # Обрабатываем каждый ответ
         for answer in answers:
             question_id = answer.get("question_id")
-            answer_text = answer.get("answer")
-
-            if not question_id or not answer_text:
-                logger.error(f"Некорректные данные: question_id: {question_id}, answer: {answer_text}")
-                continue
-
-
-            logger.info(f"Question ID: {question_id}, Answer: {answer_text}")
-
+            answer_text = answer.get("answer", "")
 
             try:
                 question = Question.objects.get(id=question_id)
             except Question.DoesNotExist:
-                logger.error(f"Question with ID {question_id} not found.")
-                continue
+                continue  # Пропускаем несуществующие вопросы
 
-
+            # Получаем или создаем сессию опроса
             session, _ = ResponseSession.objects.get_or_create(
                 survey=question.survey,
                 respondent=respondent,
             )
 
-
-            logger.info(f"Session created: {session}")
-
-
+            # Создаем ответ и связываем с вариантами если нужно
             response = Response.objects.create(
                 session=session,
                 question=question,
                 text_answer=answer_text,
             )
 
+            # Для вопросов с выбором находим соответствующий вариант
+            if question.question_type != 'text':
+                try:
+                    option = AnswerOption.objects.get(
+                        question=question,
+                        text=answer_text
+                    )
+                    response.selected_options.add(option)
+                except AnswerOption.DoesNotExist:
+                    pass
 
-            logger.info(f"Response saved: {response}")
-
-        return JsonResponse({"status": "ok"})
+        return JsonResponse({"status": "success"})
 
     except json.JSONDecodeError:
-        logger.error("Ошибка декодирования JSON.")
-        return JsonResponse({"error": "Неверный JSON"}, status=400)
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
-
 
 
 

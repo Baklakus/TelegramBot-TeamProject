@@ -20,7 +20,7 @@ class QuestionInline(admin.StackedInline):
 
 @admin.register(Survey)
 class SurveyAdmin(admin.ModelAdmin):
-    list_display = ('title', 'created_at', 'updated_at', 'get_question_count', 'get_answer_count')
+    list_display = ('title', 'created_at', 'updated_at', 'get_question_count', 'get_answer_count','id')
     search_fields = ('title',)
     inlines = [QuestionInline]
 

@@ -34,4 +34,7 @@ urlpatterns = [
     path('profiles/delete/<int:user_id>/', views.delete_profile, name='delete_profile'),
 
     path('user_activity/', views.user_activity, name='user_activity'),
+    path('api/survey/', views.api_get_survey, name='api_get_survey_unified'),
+    path('api/answers/', views.receive_bot_answer, name='receive_bot_answer'),
+
 ]
