@@ -2,7 +2,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const questionsContainer = document.getElementById('questions-container');
     const addQuestionBtn = document.getElementById('add-question');
     const form = document.getElementById('surveyForm');
+    const postUrl = form.dataset.url; // URL для отправки данных формы
 
+    // Функция для получения CSRF токена
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -18,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return cookieValue;
     }
 
+    // Функция для добавления нового вопроса
     function addNewQuestion() {
         const questionBlock = document.createElement('div');
         questionBlock.className = 'question-block';
@@ -33,10 +36,14 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="options-container">
                 <div class="option-block">
                     <input type="text" placeholder="Вариант ответа" required>
+                    <label for="correct-option">Правильный?</label>
+                    <input type="checkbox" class="correct-option">
                     <button type="button" class="delete-option">Удалить</button>
                 </div>
                 <div class="option-block">
                     <input type="text" placeholder="Вариант ответа" required>
+                    <label for="correct-option">Правильный?</label>
+                    <input type="checkbox" class="correct-option">
                     <button type="button" class="delete-option">Удалить</button>
                 </div>
             </div>
@@ -45,16 +52,20 @@ document.addEventListener('DOMContentLoaded', function () {
         questionsContainer.appendChild(questionBlock);
     }
 
+    // Функция для добавления нового варианта
     function addNewOption(optionsContainer) {
         const optionBlock = document.createElement('div');
         optionBlock.className = 'option-block';
         optionBlock.innerHTML = `
             <input type="text" placeholder="Вариант ответа" required>
+            <label for="correct-option">Правильный?</label>
+            <input type="checkbox" class="correct-option">
             <button type="button" class="delete-option">Удалить</button>
         `;
         optionsContainer.appendChild(optionBlock);
     }
 
+    // Обработчик удаления варианта ответа
     questionsContainer.addEventListener('click', function (e) {
         if (e.target.classList.contains('delete-option')) {
             const optionBlock = e.target.closest('.option-block');
@@ -73,8 +84,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Обработчик добавления нового вопроса
     addQuestionBtn.addEventListener('click', addNewQuestion);
 
+    // Обработчик отправки формы
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
 
@@ -88,22 +101,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const questions = [];
 
+        // Проверка всех вопросов и вариантов
         questionBlocks.forEach((block, index) => {
             const questionText = block.querySelector('.question-input').value.trim();
-            const required = block.querySelector('.question-required')?.checked ?? false;
-            const options = Array.from(block.querySelectorAll('.options-container input'))
-                .map(input => input.value.trim());
+            const required = block.querySelector('.question-required').checked;
+            const options = Array.from(block.querySelectorAll('.option-block')).map(optBlock => {
+                return {
+                    text: optBlock.querySelector('input').value.trim(),
+                    is_correct: optBlock.querySelector('.correct-option').checked
+                };
+            });
 
-            if (!questionText) errors.push(`Вопрос ${index + 1}: не заполнен текст`);
-            if (options.some(opt => !opt)) errors.push(`Вопрос ${index + 1}: есть пустые варианты`);
-            if (new Set(options).size !== options.length) {
+            if (!questionText) errors.push(`Вопрос ${index + 1}: не заполнен`);
+            if (options.some(opt => !opt.text)) errors.push(`Вопрос ${index + 1}: есть пустые варианты`);
+            if (new Set(options.map(o => o.text)).size !== options.length) {
                 errors.push(`Вопрос ${index + 1}: повторяющиеся варианты`);
             }
 
             questions.push({
                 text: questionText,
                 type: 'single_choice',
-                required: true,
+                required: required,
                 options: options
             });
         });
@@ -120,7 +138,6 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         try {
-            const postUrl = form.dataset.url;
             const response = await fetch(postUrl, {
                 method: 'POST',
                 headers: {
@@ -136,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             alert('Опрос успешно создан!');
-            window.location.href = window.surveyUrls.index;
+            window.location.href = window.surveyUrls.index; // Перенаправление на главную страницу
 
         } catch (error) {
             alert(`Ошибка: ${error.message}`);

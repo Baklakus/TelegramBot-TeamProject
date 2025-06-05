@@ -50,6 +50,7 @@ class Question(models.Model):
 class AnswerOption(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     text = models.TextField()
+    is_correct = models.BooleanField(default=False)  # Добавлено поле для правильного ответа
 
     class Meta:
         verbose_name = "Вариант ответа"

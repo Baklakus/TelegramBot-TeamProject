@@ -1,10 +1,13 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const questionsContainer = document.getElementById('questions-container');
-    const addQuestionBtn = document.getElementById('add-question');
     const form = document.getElementById('surveyForm');
-    const updateBtn = document.getElementById('update-survey');
-    const postUrl = form.dataset.url;
-    const indexUrl = form.dataset.indexUrl;
+    const postUrl = form.dataset.url;  // URL для отправки данных формы
+    const indexUrl = form.dataset.indexUrl;  // URL для перенаправления на главную страницу
+    const surveyId = form.dataset.surveyId;  // Получаем ID опроса из атрибута формы
+
+    if (!surveyId) {
+        console.error("Survey ID не найден!");
+        return;
+    }
 
     // Функция для получения CSRF токена
     function getCookie(name) {
@@ -22,35 +25,20 @@ document.addEventListener('DOMContentLoaded', function () {
         return cookieValue;
     }
 
-    // Удаление опроса через форму
-    const deleteSurveyBtn = document.getElementById('delete-survey-btn');
-    if (deleteSurveyBtn) {
-        deleteSurveyBtn.addEventListener('click', async function () {
-            const surveyId = form.dataset.surveyId; // получаем ID опроса из атрибута data-свойства формы
-
-            if (confirm('Вы уверены, что хотите удалить этот опрос?')) {
-                try {
-                    const response = await fetch(`/survey/${surveyId}/delete/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': getCookie('csrftoken'),
-                        }
-                    });
-
-                    if (response.ok) {
-                        alert('Опрос успешно удален!');
-                        window.location.href = indexUrl;  // Перенаправляем на страницу с опросами
-                    } else {
-                        throw new Error('Ошибка при удалении опроса');
-                    }
-                } catch (error) {
-                    alert(error.message);
-                }
-            }
-        });
+    // Добавление нового варианта
+    function addNewOption(optionsContainer) {
+        const optionBlock = document.createElement('div');
+        optionBlock.className = 'option-block';
+        optionBlock.innerHTML = `
+            <input type="text" placeholder="Вариант ответа" required>
+            <label for="correct-option">Правильный?</label>
+            <input type="checkbox" class="correct-option">
+            <button type="button" class="delete-option">Удалить</button>
+        `;
+        optionsContainer.appendChild(optionBlock);
     }
 
-    // Логика добавления нового вопроса и варианта
+    // Добавление нового вопроса
     function addNewQuestion() {
         const questionBlock = document.createElement('div');
         questionBlock.className = 'question-block';
@@ -66,10 +54,14 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="options-container">
                 <div class="option-block">
                     <input type="text" placeholder="Вариант ответа" required>
+                    <label for="correct-option">Правильный?</label>
+                    <input type="checkbox" class="correct-option">
                     <button type="button" class="delete-option">Удалить</button>
                 </div>
                 <div class="option-block">
                     <input type="text" placeholder="Вариант ответа" required>
+                    <label for="correct-option">Правильный?</label>
+                    <input type="checkbox" class="correct-option">
                     <button type="button" class="delete-option">Удалить</button>
                 </div>
             </div>
@@ -78,16 +70,8 @@ document.addEventListener('DOMContentLoaded', function () {
         questionsContainer.appendChild(questionBlock);
     }
 
-    function addNewOption(optionsContainer) {
-        const optionBlock = document.createElement('div');
-        optionBlock.className = 'option-block';
-        optionBlock.innerHTML = `
-            <input type="text" placeholder="Вариант ответа" required>
-            <button type="button" class="delete-option">Удалить</button>
-        `;
-        optionsContainer.appendChild(optionBlock);
-    }
-
+    // Обработчик для добавления нового варианта ответа
+    const questionsContainer = document.getElementById('questions-container');
     questionsContainer.addEventListener('click', function (e) {
         if (e.target.classList.contains('delete-option')) {
             const optionBlock = e.target.closest('.option-block');
@@ -104,10 +88,44 @@ document.addEventListener('DOMContentLoaded', function () {
             const optionsContainer = questionBlock.querySelector('.options-container');
             addNewOption(optionsContainer);
         }
+
+        // Обработчик для удаления вопроса
+        if (e.target.classList.contains('delete-question')) {
+            const questionBlock = e.target.closest('.question-block');
+            const questionId = questionBlock.getAttribute('data-question-id');
+            const confirmDelete = confirm('Вы уверены, что хотите удалить этот вопрос?');
+
+            if (confirmDelete) {
+                // Отправляем запрос на сервер для удаления вопроса
+                fetch(`/survey/${surveyId}/delete_question/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question_id: questionId })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        questionBlock.remove();
+                    } else {
+                        alert('Ошибка при удалении вопроса');
+                    }
+                })
+                .catch(error => {
+                    alert('Ошибка при удалении вопроса');
+                });
+            }
+        }
     });
 
-    addQuestionBtn.addEventListener('click', addNewQuestion);
+    // Обработчик для добавления нового вопроса
+    const addQuestionBtn = document.getElementById('add-question');
+    if (addQuestionBtn) {
+        addQuestionBtn.addEventListener('click', addNewQuestion);
+    }
 
+    // Обработчик отправки формы
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
 
@@ -121,12 +139,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const questions = [];
 
+        // Проверка всех вопросов и вариантов
         questionBlocks.forEach((block, index) => {
             const questionText = block.querySelector('.question-input').value.trim();
-            const required = block.querySelector('.question-required')?.checked ?? false;
+            const required = block.querySelector('.question-required').checked;
             const options = Array.from(block.querySelectorAll('.option-block')).map(optBlock => {
                 return {
-                    text: optBlock.querySelector('input').value.trim()
+                    text: optBlock.querySelector('input').value.trim(),
+                    is_correct: optBlock.querySelector('.correct-option').checked  // Считываем состояние галочки "Правильный?"
                 };
             });
 
@@ -138,8 +158,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             questions.push({
                 text: questionText,
-                type: 'single_choice',
-                required: true,
+                type: 'single_choice',  // Тип вопроса
+                required: required,
                 options: options
             });
         });
@@ -171,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             alert('Опрос успешно обновлён!');
-            window.location.href = indexUrl;
+            window.location.href = indexUrl;  // Перенаправление на главную страницу
 
         } catch (error) {
             alert(`Ошибка: ${error.message}`);

@@ -1,26 +1,36 @@
 import json
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Survey, Question, AnswerOption, Response,Respondent,ResponseSession
-from django.contrib.auth.decorators import login_required
+from .models import *
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User, Group
 from django.conf import settings
 from django.views.decorators.http import require_POST
+from django.contrib.auth.forms import UserChangeForm
+from django.contrib.auth import update_session_auth_hash
 import logging
+from django.contrib.auth.forms import UserChangeForm, PasswordChangeForm
+from django.db.models import Count
+
+
+
 @login_required
 def index(request):
     surveys = Survey.objects.all().order_by('-created_at')
     return render(request, 'main/index.html', {'surveys': surveys})
 
-@csrf_exempt
+def is_admin(user):
+    return user.groups.filter(name='Administrator').exists()
+
 @login_required
 def create_survey(request):
-    if request.method == "GET":
-        return render(request, "main/create_survey.html")
+    if request.method == 'GET':
+        # Возвращаем страницу для создания опроса
+        return render(request, 'main/create_survey.html')
 
-    elif request.method == "POST":
+    elif request.method == 'POST':
         try:
             data = json.loads(request.body)
             title = data.get("title")
@@ -30,16 +40,23 @@ def create_survey(request):
             if not title:
                 return JsonResponse({"error": "Название опроса обязательно"}, status=400)
 
+            # Создание опроса
             survey = Survey.objects.create(title=title, description=description)
             for q in questions:
                 is_required = q.get("required", False)
                 question = Question.objects.create(
                     survey=survey,
                     text=q["text"],
-                    question_type=is_required,
+                    question_type=q["type"],
+                    is_required=is_required,
                 )
                 for opt in q["options"]:
-                    AnswerOption.objects.create(question=question, text=opt)
+                    is_correct = opt.get('is_correct', False)  # Проверка на правильность
+                    AnswerOption.objects.create(
+                        question=question,
+                        text=opt['text'],
+                        is_correct=is_correct
+                    )
 
             return JsonResponse({"message": "Опрос успешно создан!"}, status=201)
 
@@ -101,7 +118,6 @@ def edit_survey(request, survey_id):
 
             updated_question_ids.append(question.id)
 
-
             existing_options = {opt.id: opt for opt in question.answeroption_set.all()}
             updated_option_ids = []
 
@@ -109,9 +125,11 @@ def edit_survey(request, survey_id):
                 if isinstance(opt_text, dict):
                     opt_id = opt_text.get("id")
                     text = opt_text.get("text", "").strip()
+                    is_correct = opt_text.get("is_correct", False)  # Сохраняем правильность
                 else:
                     opt_id = None
                     text = str(opt_text).strip()
+                    is_correct = False  # По умолчанию вариант не правильный
 
                 if not text:
                     continue
@@ -119,9 +137,10 @@ def edit_survey(request, survey_id):
                 if opt_id and int(opt_id) in existing_options:
                     option = existing_options[int(opt_id)]
                     option.text = text
+                    option.is_correct = is_correct
                     option.save()
                 else:
-                    option = AnswerOption.objects.create(question=question, text=text)
+                    option = AnswerOption.objects.create(question=question, text=text, is_correct=is_correct)
 
                 updated_option_ids.append(option.id)
 
@@ -172,39 +191,143 @@ def edit_answer_option(request, option_id):
             return redirect('index')
     return render(request, 'main/edit_answer_option.html', {'option': option})
 
+@login_required
+@csrf_exempt
+def delete_question(request, survey_id):  # Убедитесь, что параметр survey_id передается в функцию
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            question_id = data.get('question_id')
+
+            # Получаем опрос и вопрос по ID
+            survey = get_object_or_404(Survey, id=survey_id)
+            question = get_object_or_404(Question, id=question_id, survey=survey)
+
+            # Удаляем вопрос
+            question.delete()
+
+            return JsonResponse({"message": "Вопрос успешно удалён!"}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Неверный метод запроса"}, status=400)
+
+
+from django.db.models import Count
+
+
+@login_required
+def option_statistics(request, survey_id=None, question_id=None):
+    """
+    Подсчитывает количество выборов для вариантов ответа
+    Возможна фильтрация по опросу и/или вопросу
+    """
+    # Базовый запрос для вариантов ответа
+    options = AnswerOption.objects.annotate(
+        num_responses=Count('response')  # Считаем связанные ответы
+    ).select_related('question', 'question__survey')
+
+    # Фильтрация по опросу если указан survey_id
+    if survey_id:
+        options = options.filter(question__survey_id=survey_id)
+
+    # Фильтрация по вопросу если указан question_id
+    if question_id:
+        options = options.filter(question_id=question_id)
+
+    # Группируем результаты
+    stats = []
+    for option in options:
+        stats.append({
+            'option_id': option.id,
+            'option_text': option.text,
+            'question_id': option.question.id,
+            'question_text': option.question.text,
+            'survey_id': option.question.survey.id,
+            'survey_title': option.question.survey.title,
+            'num_responses': option.num_responses,
+        })
+
+    return JsonResponse({'stats': stats})
 
 
 @login_required
 def survey_stats(request, survey_id):
-    try:
-        survey = Survey.objects.get(id=survey_id)
-    except Survey.DoesNotExist:
-        return render(request, 'error.html', {'message': 'Опрос не найден'})
+    survey = get_object_or_404(Survey, id=survey_id)
 
-    questions = survey.question_set.all()
+    # Получаем статистику через новую функцию
+    stats_response = option_statistics(request, survey_id=survey_id)
+    stats_data = json.loads(stats_response.content)['stats']
 
-    stats = []
-    for question in questions:
-        question_stats = {
-            'question': question.text,
-            'data': []
-        }
+    # Группируем по вопросам
+    question_stats = {}
+    for item in stats_data:
+        qid = item['question_id']
+        if qid not in question_stats:
+            question_stats[qid] = {
+                'question': item['question_text'],
+                'data': []
+            }
+        question_stats[qid]['data'].append({
+            'option': item['option_text'],
+            'count': item['num_responses']
+        })
 
-        # Для вопросов с вариантами (single_choice, multiple_choice)
-        if question.question_type in ['single_choice', 'multiple_choice']:
-            options = question.answeroption_set.all()
+    return render(request, 'main/survey_stats.html', {
+        'survey': survey,
+        'question_stats': list(question_stats.values())
+    })
 
-            # Подсчитываем количество ответов для каждого варианта
-            for option in options:
-                count = Response.objects.filter(question=question, selected_options=option).count()
-                question_stats['data'].append({
-                    'option': option.text,
-                    'count': count
+
+@login_required
+def user_activity(request):
+    # Получаем всех респондентов
+    respondents = Respondent.objects.all()
+
+    activity_data = []
+    for respondent in respondents:
+        # Получаем сессии ответов для респондента
+        sessions = ResponseSession.objects.filter(respondent=respondent).order_by('-started_at')
+
+        last_activity_time = 'Нет данных'
+        total_responses = 0
+        surveys = []
+
+        for session in sessions:
+            # Добавляем информацию о сессии, опросе и времени
+            survey_title = session.survey.title
+            survey_date = session.started_at
+            total_responses += Response.objects.filter(session=session).count()  # Количество ответов
+
+            responses = []
+            for response in Response.objects.filter(session=session):
+                # Получаем варианты, которые выбрал респондент
+                selected_options = response.selected_options.all()
+                options_text = [option.text for option in selected_options]
+
+                responses.append({
+                    'question_text': response.question.text,
+                    'selected_options': ', '.join(options_text),  # Список выбранных вариантов
                 })
 
-        stats.append(question_stats)
+            surveys.append({
+                'survey_title': survey_title,
+                'survey_date': survey_date,
+                'total_responses': total_responses,
+                'responses': responses,
+            })
 
-    return render(request, 'main/survey_stats.html', {'survey': survey, 'stats': stats})
+            # Последняя активность
+            last_activity_time = survey_date
+
+        activity_data.append({
+            'respondent': respondent,
+            'last_activity_time': last_activity_time,
+            'surveys': surveys
+        })
+
+    return render(request, 'main/user_activity.html', {'activity_data': activity_data})
 
 
 
@@ -254,17 +377,15 @@ def create_profile(request):
 STATIC_PASSWORD = '123'
 
 
+from django.contrib.auth.models import User, Group
+from django.shortcuts import render
+
 def create_superuser(request):
     if not User.objects.filter(username='admin').exists():
         user = User.objects.create_superuser('admin', 'admin@example.com', 'adminpassword')
-
         admin_group, created = Group.objects.get_or_create(name='Администратор')
-
         user.groups.add(admin_group)
-
-
         user.save()
-
         return render(request, 'main/create_superuser_success.html')
     else:
         return render(request, 'main/create_superuser_exists.html')
@@ -380,3 +501,50 @@ def receive_bot_answer(request):
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
+
+
+
+
+@login_required
+def profile_list(request):
+    users = User.objects.all()  # Получаем всех пользователей
+    return render(request, 'main/profile_list.html', {'users': users})
+
+
+@login_required
+def edit_profile(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+
+    if request.method == 'POST':
+        # Обработка данных пользователя
+        user_form = UserChangeForm(request.POST, instance=user)
+
+        # Если форма для данных пользователя прошла валидацию, обновляем данные
+        if user_form.is_valid():
+            user_form.save()
+
+        # Обработка изменения пароля
+        new_password1 = request.POST.get('new_password1')
+        new_password2 = request.POST.get('new_password2')
+
+        if new_password1 and new_password1 == new_password2:
+            user.set_password(new_password1)  # Устанавливаем новый пароль
+            user.save()
+
+        # Сохраняем сессию после изменения пароля
+        update_session_auth_hash(request, user)
+
+        return redirect('profile_list')  # Перенаправление на список профилей
+    else:
+        user_form = UserChangeForm(instance=user)
+
+    return render(request, 'main/edit_profile.html', {'user_form': user_form, 'user': user})
+
+@login_required
+def delete_profile(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        user.delete()
+        return redirect('profile_list')  # Перенаправление после удаления
+    return render(request, 'main/delete_profile.html', {'user': user})
+

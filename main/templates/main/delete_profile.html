@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    {% load static %}
+    <title>Удаление профиля</title>
+</head>
+<body>
+    <header>
+        <h1>Удаление профиля</h1>
+        <a href="{% url 'profile_list' %}">Назад к списку пользователей</a>
+    </header>
+
+    <p>Вы уверены, что хотите удалить профиль пользователя "{{ user.username }}"?</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit">Удалить</button>
+    </form>
+</body>
+</html>

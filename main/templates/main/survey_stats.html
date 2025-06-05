@@ -28,12 +28,12 @@
 
         <h2>Детальная статистика по вопросам</h2>
 
-        {% for stat in stats %}
+        {% for question_stat in question_stats %}
             <section class="question-section">
-                <h3>{{ stat.question }}</h3>
+                <h3>{{ question_stat.question }}</h3>
                 <ul>
-                    {% for option in stat.data %}
-                        <li>{{ option.option }} — {{ option.count|default:0 }} ответ(ов)</li>
+                    {% for option in question_stat.data %}
+                        <li>{{ option.option }} — {{ option.count }} ответ(ов)</li>
                     {% empty %}
                         <li><i>Нет вариантов ответа</i></li>
                     {% endfor %}

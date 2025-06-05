@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Активность пользователей</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'main/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'main/css/respondent_stats.css' %}">
+</head>
+<body>
+    <header>
+        <div>
+            <a href="{% url 'index' %}">Опросник</a>
+            <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit">Выйти из аккаунта</button>
+            </form>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>Активность пользователей</h1>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Имя</th>
+                    <th>Фамилия</th>
+                    <th>Последняя активность</th>
+                    <th>Опросы и ответы</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activity in activity_data %}
+                    <tr>
+                        <td>{{ activity.respondent.first_name }}</td>
+                        <td>{{ activity.respondent.last_name }}</td>
+                        <td>{{ activity.last_activity_time }}</td>
+                        <td>
+                            <ul>
+                                {% for survey in activity.surveys %}
+                                    <li>
+                                        <strong>{{ survey.survey_title }} — {{ survey.survey_date }}</strong>
+                                        <button class="toggle-button" onclick="toggleSurveyDetails({{ forloop.counter }})">Показать/Скрыть ответы</button>
+                                        <div id="survey-details-{{ forloop.counter }}" class="survey-details">
+                                            <ul>
+                                                {% for response in survey.responses %}
+                                                    <li>
+                                                        <strong>Вопрос:</strong> {{ response.question_text }}<br>
+                                                        <strong>Выбранные варианты:</strong> {{ response.selected_options }}
+                                                    </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </li>
+                                {% empty %}
+                                    <li>Нет активности</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4">Нет активности</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="back-to-home">
+            <a href="{% url 'index' %}" class="back-button">Вернуться на главную</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>LADA SPIRT</p>
+    </footer>
+
+    <script>
+        function toggleSurveyDetails(surveyId) {
+            var details = document.getElementById('survey-details-' + surveyId);
+            if (details.style.display === "none" || details.style.display === "") {
+                details.style.display = "block";
+            } else {
+                details.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
+
+

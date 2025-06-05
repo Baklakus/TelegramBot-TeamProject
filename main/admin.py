@@ -2,14 +2,12 @@ from django.contrib import admin
 from django.db.models import Count
 from .models import Survey, Question, AnswerOption, Respondent, ResponseSession, Response
 
-
 class AnswerOptionInline(admin.TabularInline):
     model = AnswerOption
     extra = 1
-    readonly_fields = ['text', 'get_response_count']
+    readonly_fields = ['text', 'get_response_count', 'is_correct']  # Отображаем поле is_correct
 
     def get_response_count(self, obj):
-        # Подсчитываем количество ответов для этой опции
         return Response.objects.filter(selected_options=obj).count()
     get_response_count.short_description = 'Количество ответов'
 
@@ -42,22 +40,19 @@ class QuestionAdmin(admin.ModelAdmin):
     inlines = [AnswerOptionInline]
 
     def get_answer_count(self, obj):
-        # Подсчитываем количество ответов для данного вопроса
         return Response.objects.filter(question=obj).count()
     get_answer_count.short_description = 'Количество ответов'
 
     def get_option_count(self, obj):
-        # Подсчитываем количество вариантов для этого вопроса
         return obj.answeroption_set.count()
     get_option_count.short_description = 'Количество вариантов'
 
 
 @admin.register(AnswerOption)
 class AnswerOptionAdmin(admin.ModelAdmin):
-    list_display = ('text', 'question', 'get_response_count')
+    list_display = ('text', 'question', 'is_correct', 'get_response_count')  # Добавляем отображение is_correct
 
     def get_response_count(self, obj):
-        # Подсчитываем количество ответов для этого варианта
         return Response.objects.filter(selected_options=obj).count()
     get_response_count.short_description = 'Количество ответов'
 
@@ -77,3 +72,4 @@ class ResponseSessionAdmin(admin.ModelAdmin):
 class ResponseAdmin(admin.ModelAdmin):
     list_display = ('question', 'session', 'created_at')
     list_filter = ('question__survey',)
+

@@ -18,7 +18,8 @@
     <h1>Редактировать опрос</h1>
     <form id="surveyForm" method="POST" onsubmit="return false"
           data-url="{% url 'edit_survey' survey.id %}"
-          data-index-url="{% url 'index' %}">
+          data-index-url="{% url 'index' %}"
+          data-survey-id="{{ survey.id }}">  <!-- survey ID передается через атрибут data-survey-id -->
         {% csrf_token %}
         <section class="survey-creator">
             <div>
@@ -45,11 +46,16 @@
                         {% for option in question.answeroption_set.all %}
                         <div class="option-block" data-option-id="{{ option.id }}">
                             <input type="text" value="{{ option.text }}" required>
+                            <label for="correct-option">Правильный?</label>
+                            <input type="checkbox" class="correct-option" {% if option.is_correct %}checked{% endif %}>
                             <button type="button" class="delete-option">Удалить</button>
                         </div>
                         {% endfor %}
                     </div>
                     <button type="button" class="add-option">+ Добавить вариант</button>
+
+                    <!-- Кнопка для удаления вопроса -->
+                    <button type="button" class="delete-question">Удалить вопрос</button>
                 </div>
                 {% endfor %}
             </div>

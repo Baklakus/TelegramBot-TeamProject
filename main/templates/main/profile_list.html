@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Список пользователей</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'main/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'main/css/respondent_stats.css' %}">
+</head>
+<body>
+    <header>
+        <div>
+            <a href="{% url 'index' %}">Опросник</a>
+            <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit">Выйти из аккаунта</button>
+            </form>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>Пользователи</h1>
+
+        {% for user in users %}
+            <div class="user-card">
+                <div class="user-info">
+                    <h3>{{ user.username }}</h3>
+                    <p>Дата регистрации: {{ user.date_joined|date:"d.m.Y" }}</p>
+                </div>
+                <div class="user-actions">
+                    <a href="{% url 'edit_profile' user.id %}" class="btn">Редактировать</a>
+                    <a href="{% url 'delete_profile' user.id %}" class="btn btn-danger">Удалить</a>
+                </div>
+            </div>
+        {% empty %}
+            <p>Нет пользователей</p>
+        {% endfor %}
+
+        <div class="back-to-home">
+            <a href="{% url 'index' %}" class="back-button">Вернуться на главную</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>LADA SPIRT</p>
+    </footer>
+</body>
+</html>
+

@@ -11,9 +11,12 @@
         <div>
             <a href="{% url 'index' %}">Опросник</a>
             <button onclick="location.href='{% url 'create_survey' %}'">Создать опрос</button>
-
-            {% if request.user.groups.first.name == 'Администратор' %}
+            <button onclick="location.href='{% url 'user_activity' %}'">Респонденты</button>
+             {% if request.user.groups.first.name == 'Администратор' %}
+                <!-- Кнопка для администраторов для создания профиля -->
                 <button onclick="location.href='{% url 'create_profile' %}'">Создать профиль</button>
+                <!-- Кнопка для администраторов для управления профилями -->
+                <button onclick="location.href='{% url 'profile_list' %}'">Управление профилями</button>
             {% endif %}
 
             <form method="post" action="{% url 'logout' %}" style="display:inline;">

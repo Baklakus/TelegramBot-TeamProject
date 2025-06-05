@@ -14,4 +14,4 @@ class QuestionForm(forms.ModelForm):
 class AnswerOptionForm(forms.ModelForm):
     class Meta:
         model = AnswerOption
-        fields = ['text']
+        fields = ['text', 'is_correct']
