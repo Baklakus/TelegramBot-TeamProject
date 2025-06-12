@@ -405,7 +405,7 @@ def api_get_survey(request):
                 'text': question.text,
                 'type': question.question_type,
                 'required': question.is_required,
-                'options': [{'id': option.id, 'text': option.text} for option in question.answeroption_set.all()]
+                'options': [{'id': option.id, 'text': option.text, 'is_correct': option.is_correct} for option in question.answeroption_set.all()]
             }
             questions.append(question_data)
 
@@ -417,7 +417,6 @@ def api_get_survey(request):
         })
     except Survey.DoesNotExist:
         return JsonResponse({'error': 'Survey not found'}, status=404)
-
 logger = logging.getLogger(__name__)
 
 

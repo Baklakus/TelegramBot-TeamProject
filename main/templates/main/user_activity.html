@@ -35,12 +35,12 @@
                     <tr>
                         <td>{{ activity.respondent.first_name }}</td>
                         <td>{{ activity.respondent.last_name }}</td>
-                        <td>{{ activity.last_activity_time }}</td>
+                        <td>{{ activity.last_activity_time|date:"d.m.Y H:i" }}</td>  <!-- Форматируем дату и время -->
                         <td>
                             <ul>
                                 {% for survey in activity.surveys %}
                                     <li>
-                                        <strong>{{ survey.survey_title }} — {{ survey.survey_date }}</strong>
+                                        <strong>{{ survey.survey_title }} — {{ survey.survey_date|date:"d.m.Y" }}</strong>
                                         <button class="toggle-button" onclick="toggleSurveyDetails({{ forloop.counter }})">Показать/Скрыть ответы</button>
                                         <div id="survey-details-{{ forloop.counter }}" class="survey-details">
                                             <ul>
@@ -88,5 +88,6 @@
     </script>
 </body>
 </html>
+
 
 
